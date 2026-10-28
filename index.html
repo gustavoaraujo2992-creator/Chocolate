@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#3E1F14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>ChocoNota — Controle de Trufas & Cones</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- TELA DE LOGIN / BLOQUEIO -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="login-logo" aria-hidden="true">🍫</div>
+        <h1>ChocoNota</h1>
+        <p>Acesso restrito ao organizador de vendas</p>
+      </div>
+
+      <form id="loginForm" autocomplete="on">
+        <div class="form-group">
+          <label for="loginUsername">Usuário</label>
+          <input
+            type="text"
+            id="loginUsername"
+            name="username"
+            placeholder="Digite seu usuário"
+            required
+            autocomplete="username"
+            class="input-field input-lg"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword">Senha</label>
+          <div class="password-input-wrap">
+            <input
+              type="password"
+              id="loginPassword"
+              name="password"
+              placeholder="Digite sua senha"
+              required
+              autocomplete="current-password"
+              class="input-field input-lg"
+            />
+            <button type="button" id="btnTogglePass" class="toggle-pass-btn" aria-label="Mostrar ou ocultar senha">
+              👁️
+            </button>
+          </div>
+        </div>
+
+        <label class="remember-row">
+          <input type="checkbox" id="rememberMe" checked />
+          <span>Manter conectado neste celular</span>
+        </label>
+
+        <p id="loginErrorMsg" class="login-error hidden">❌ Usuário ou senha incorretos.</p>
+
+        <button type="submit" class="btn-primary btn-login">
+          🔓 Entrar no Sistema
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SISTEMA PRINCIPAL (SÓ APARECE APÓS LOGIN) -->
+  <div id="appShell" class="app-shell hidden">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-top">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">🍫</div>
+          <div>
+            <h1>ChocoNota</h1>
+            <p class="subtitle">Controle de Trufas &amp; Cones</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button type="button" id="btnSyncStatus" class="sync-pill" title="Configurar ou Sincronizar Planilha Google">
+            <span class="sync-dot" id="syncDot"></span>
+            <span id="syncText">Planilha</span>
+          </button>
+          <button type="button" id="btnOpenSettings" class="icon-btn" aria-label="Configurar Preços, Senha e Planilha" title="Configurações">
+            ⚙️
+          </button>
+          <button type="button" id="btnLogout" class="icon-btn" aria-label="Bloquear e Sair" title="Bloquear / Sair">
+            🔒
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumo Rápido no Topo -->
+      <div class="summary-cards">
+        <div class="summary-card pending-card">
+          <span class="summary-label">A Receber (Pendente)</span>
+          <strong class="summary-value" id="totalPendingValue">R$ 0,00</strong>
+          <span class="summary-sub" id="totalPendingCount">0 pessoas devendo</span>
+        </div>
+        <div class="summary-card paid-card">
+          <span class="summary-label">Já Recebido (Pago)</span>
+          <strong class="summary-value" id="totalPaidValue">R$ 0,00</strong>
+          <span class="summary-sub" id="totalItemsSold">0 itens vendidos</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navegação Principal (Abas Mobile) -->
+    <nav class="tab-bar" role="tablist">
+      <button type="button" class="tab-btn active" data-tab="tab-novo" role="tab" aria-selected="true">
+        <span class="tab-icon">➕</span>
+        <span>Anotar</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="tab-pessoas" role="tab" aria-selected="false">
+        <span class="tab-icon">👥</span>
+        <span>Por Pessoa</span>
+        <span class="tab-badge" id="badgePessoas">0</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="tab-historico" role="tab" aria-selected="false">
+        <span class="tab-icon">📋</span>
+        <span>Histórico</span>
+      </button>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="app-main">
+      <!-- ABA 1: ANOTAR NOVA VENDA -->
+      <section id="tab-novo" class="tab-panel active">
+        <form id="saleForm" class="card form-card" autocomplete="off">
+          <div class="card-header-row">
+            <h2>Nova Anotação</h2>
+            <span class="live-clock" id="liveClock">--/--/---- • --:--</span>
+          </div>
+
+          <!-- Nome da Pessoa com Autocomplete de Clientes -->
+          <div class="form-group">
+            <label for="customerName">Nome da Pessoa *</label>
+            <div class="autocomplete-wrapper">
+              <input
+                type="text"
+                id="customerName"
+                name="customerName"
+                placeholder="Ex: Maria Silva"
+                required
+                class="input-field input-lg"
+              />
+              <div id="customerSuggestions" class="suggestions-box hidden"></div>
+            </div>
+            <div id="QuickCustomersBar" class="quick-chips"></div>
+          </div>
+
+          <!-- Seleção de Produtos com Botões + e - -->
+          <div class="form-group">
+            <div class="label-row">
+              <label>Quantidades *</label>
+              <button type="button" id="btnEditPricesInline" class="link-btn">
+                Alterar preço base
+              </button>
+            </div>
+
+            <div class="product-Grid">
+              <!-- Card Trufa -->
+              <div class="product-counter-card" id="cardTrufa">
+                <div class="product-info">
+                  <span class="product-emoji">🍬</span>
+                  <div>
+                    <strong>Trufa</strong>
+                    <span class="product-price" id="displayPriceTrufa">R$ 5,00 un.</span>
+                  </div>
+                </div>
+                <div class="stepper">
+                  <button type="button" class="stepper-btn minus" data-product="trufa" aria-label="Diminuir Trufa">−</button>
+                  <input type="number" id="qtyTrufa" value="0" min="0" max="999" readonly class="stepper-input" />
+                  <button type="button" class="stepper-btn plus" data-product="trufa" aria-label="Aumentar Trufa">+</button>
+                </div>
+              </div>
+
+              <!-- Card Cone -->
+              <div class="product-counter-card" id="cardCone">
+                <div class="product-info">
+                  <span class="product-emoji">🍦</span>
+                  <div>
+                    <strong>Cone Recheado</strong>
+                    <span class="product-price" id="displayPriceCone">R$ 8,00 un.</span>
+                  </div>
+                </div>
+                <div class="stepper">
+                  <button type="button" class="stepper-btn minus" data-product="cone" aria-label="Diminuir Cone">−</button>
+                  <input type="number" id="qtyCone" value="0" min="0" max="999" readonly class="stepper-input" />
+                  <button type="button" class="stepper-btn plus" data-product="cone" aria-label="Aumentar Cone">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sabor ou Observação Opcional -->
+          <div class="form-group">
+            <label for="flavorNotes">Sabor ou Observação <span class="optional-tag">(opcional)</span></label>
+            <input
+              type="text"
+              id="flavorNotes"
+              name="flavorNotes"
+              placeholder="Ex: Ninho com Nutella, Maracujá, paga dia 10..."
+              class="input-field"
+            />
+            <div class="flavor-chips" id="flavorChips">
+              <button type="button" class="chip" data-flavor="Ninho c/ Nutella">Ninho c/ Nutella</button>
+              <button type="button" class="chip" data-flavor="Brigadeiro">Brigadeiro</button>
+              <button type="button" class="chip" data-flavor="Maracujá">Maracujá</button>
+              <button type="button" class="chip" data-flavor="Beijinho">Beijinho</button>
+              <button type="button" class="chip" data-flavor="Óreo">Óreo</button>
+              <button type="button" class="chip" data-flavor="Morango">Morango</button>
+            </div>
+          </div>
+
+          <!-- Valor Total (Calculado automaticamente mas editável se quiser dar desconto) -->
+          <div class="total-bar">
+            <div class="total-bar-left">
+              <span class="total-label">Valor Total</span>
+              <span class="total-items-hint" id="totalItemsHint">Selecione os itens acima</span>
+            </div>
+            <div class="total-input-wrap">
+              <span class="currency-prefix">R$</span>
+              <input
+                type="number"
+                id="customTotalValue"
+                step="0.50"
+                min="0"
+                value="0.00"
+                class="total-input"
+                aria-label="Valor total da venda"
+              />
+            </div>
+          </div>
+
+          <!-- Status Inicial (Fiado / Pendente por padrão, mas permite já lançar como Pago) -->
+          <div class="status-selector">
+            <label class="status-option pending-opt">
+              <input type="radio" name="saleStatus" value="PENDENTE" checked />
+              <span>⏳ Vai pagar depois (Devedor)</span>
+            </label>
+            <label class="status-option paid-opt">
+              <input type="radio" name="saleStatus" value="PAGO" />
+              <span>✅ Já pagou agora</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btnSubmitSale" class="btn-primary btn-submit">
+            <span>Salvar Anotação</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- ABA 2: DEVEDORES AGRUPADOS POR PESSOA -->
+      <section id="tab-pessoas" class="tab-panel">
+        <div class="filter-bar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="search" id="searchPersonInput" placeholder="Buscar pessoa..." class="input-field search-input" />
+          </div>
+          <div class="segmented-control" id="personFilterGroup">
+            <button type="button" class="seg-btn active" data-filter="PENDENTE">Devedores</button>
+            <button type="button" class="seg-btn" data-filter="TODOS">Todos</button>
+            <button type="button" class="seg-btn" data-filter="PAGO">Quitados</button>
+          </div>
+        </div>
+
+        <div id="peopleListContainer" class="list-container">
+          <!-- Renderizado via JS -->
+        </div>
+      </section>
+
+      <!-- ABA 3: HISTÓRICO GERAL DE LANÇAMENTOS -->
+      <section id="tab-historico" class="tab-panel">
+        <div class="filter-bar">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="search" id="searchHistoryInput" placeholder="Buscar por nome, sabor ou data..." class="input-field search-input" />
+          </div>
+          <div class="segmented-control" id="historyFilterGroup">
+            <button type="button" class="seg-btn active" data-filter="TODOS">Todos</button>
+            <button type="button" class="seg-btn" data-filter="PENDENTE">Pendentes</button>
+            <button type="button" class="seg-btn" data-filter="PAGO">Pagos</button>
+          </div>
+        </div>
+
+        <div class="export-actions-bar">
+          <span id="historyCountLabel" class="muted-text">0 registros</span>
+          <div class="export-btns">
+            <button type="button" id="btnSyncNow" class="btn-outline-sm">🔄 Sincronizar Planilha</button>
+            <button type="button" id="btnExportCSV" class="btn-outline-sm">📥 Baixar Planilha (CSV)</button>
+          </div>
+        </div>
+
+        <div id="historyListContainer" class="list-container">
+          <!-- Renderizado via JS -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL: CONFIGURAÇÕES (PREÇOS + SENHA + PLANILHA GOOGLE) -->
+  <div id="settingsModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3 id="modalTitle">⚙️ Configurações do Sistema</h3>
+        <button type="button" id="btnCloseSettings" class="close-btn" aria-label="Fechar">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Seção 1: Preços dos Chocolates -->
+        <div class="settings-block">
+          <h4>🍫 Preço Atual dos Produtos</h4>
+          <p class="settings-help">Se o preço mudar, altere aqui e as próximas vendas já calculam o valor novo automaticamente.</p>
+          <div class="price-inputs-row">
+            <div class="form-group">
+              <label for="settingPriceTrufa">Trufa (R$)</label>
+              <input type="number" id="settingPriceTrufa" step="0.50" min="0" class="input-field" value="5.00" />
+            </div>
+            <div class="form-group">
+              <label for="settingPriceCone">Cone (R$)</label>
+              <input type="number" id="settingPriceCone" step="0.50" min="0" class="input-field" value="8.00" />
+            </div>
+          </div>
+          <button type="button" id="btnSavePrices" class="btn-secondary full-width">Salvar Preços</button>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- Seção 2: Segurança (Alterar Usuário e Senha) -->
+        <div class="settings-block">
+          <h4>🔐 Alterar Login e Senha</h4>
+          <p class="settings-help">
+            Defina seu usuário e senha personalizados. A senha é protegida com criptografia SHA-256.
+          </p>
+          <div class="price-inputs-row">
+            <div class="form-group">
+              <label for="settingNewUser">Novo Usuário</label>
+              <input type="text" id="settingNewUser" placeholder="Ex: leonardo" class="input-field" />
+            </div>
+            <div class="form-group">
+              <label for="settingNewPass">Nova Senha</label>
+              <input type="password" id="settingNewPass" placeholder="Nova senha" class="input-field" />
+            </div>
+          </div>
+          <button type="button" id="btnSaveCredentials" class="btn-outline full-width">
+            Atualizar Login e Senha
+          </button>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- Seção 3: Integração com Google Sheets -->
+        <div class="settings-block">
+          <div class="block-title-row">
+            <h4>📊 Conexão com Google Planilhas</h4>
+            <span id="modalConnBadge" class="conn-badge">Modo Local</span>
+          </div>
+          <p class="settings-help">
+            Sua planilha já está conectada e sincroniza automaticamente cada nova venda ou baixa.
+          </p>
+
+          <div class="form-group">
+            <label for="sheetsWebhookUrl">URL do App da Planilha Google (Apps Script)</label>
+            <input
+              type="url"
+              id="sheetsWebhookUrl"
+              placeholder="https://script.google.com/macros/s/.../exec"
+              class="input-field"
+            />
+          </div>
+
+          <div class="settings-btn-row">
+            <button type="button" id="btnSaveWebhook" class="btn-primary">Salvar e Sincronizar Agora</button>
+            <button type="button" id="btnShowTutorial" class="btn-outline">Ver código do Apps Script</button>
+          </div>
+
+          <!-- Passo a passo embutido -->
+          <div id="tutorialAccordion" class="tutorial-box hidden">
+            <h5>Código da Planilha Google:</h5>
+            <button type="button" id="btnCopyAppsScript" class="btn-copy-code">
+              📋 Copiar Código da Planilha Google
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast de Feedback Rápido -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

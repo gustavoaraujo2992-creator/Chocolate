@@ -1,0 +1,10 @@
+{
+  "name": "ChocoNota — Controle de Trufas e Cones",
+  "short_name": "ChocoNota",
+  "description": "Organizador de vendas e devedores de trufas e cones integrado com Google Planilhas",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FAF5F0",
+  "theme_color": "#3E1F14",
+  "orientation": "portrait"
+}
